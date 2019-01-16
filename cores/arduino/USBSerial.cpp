@@ -53,49 +53,26 @@ void USBSerial::end(void) {
 
 int USBSerial::availableForWrite(void)
 {
-  int ret_val;
-
-  /* UserTxBufPtrOut can be modified by TIM ISR, so in order to be sure that the */
-  /* value that we read is correct, we need to disable TIM Interrupt.            */
-  CDC_disable_TIM_Interrupt();
-
-  if (UserTxBufPtrIn >= UserTxBufPtrOut) {
-    ret_val = (APP_TX_DATA_SIZE - 1 - UserTxBufPtrIn + UserTxBufPtrOut);
-  } else {
-    ret_val = (UserTxBufPtrOut - UserTxBufPtrIn - 1);
-  }
-
-  CDC_enable_TIM_Interrupt();
-
-  return ret_val;
+  return 64; // t.b.d. should match the USB buffer size
 }
 
 size_t USBSerial::write(uint8_t ch) {
-
-  /* UserTxBufPtrOut can be modified by TIM ISR, so in order to be sure that the */
-  /* value that we read is correct, we need to disable TIM Interrupt.            */
-  CDC_disable_TIM_Interrupt();
-
-  if (((UserTxBufPtrIn + 1) % APP_TX_DATA_SIZE) == UserTxBufPtrOut) {
-    // Buffer full!!! Force a flush to not loose data and go on
-    CDC_flush();
-  }
-  UserTxBuffer[UserTxBufPtrIn] = ch;
-  UserTxBufPtrIn = ((UserTxBufPtrIn + 1) % APP_TX_DATA_SIZE);
-
-  CDC_enable_TIM_Interrupt();
-
-  return 1;
+  return write(&ch, 1);
 }
 
 size_t USBSerial::write(const uint8_t *buffer, size_t size){
-  size_t i = 0;
-  for (i=0; i < size; i++) {
-    if (write(buffer[i]) != 1) {
-      break;
-	}
+  if (!(bool) *this || !buffer) {
+    return 0;
   }
-  return i;
+
+  USBD_CDC_SetTxBuffer(&hUSBD_Device_CDC, (uint8_t *)buffer, size);
+
+  uint8_t tResult = USBD_OK;
+  do {
+    tResult = USBD_CDC_TransmitPacket(&hUSBD_Device_CDC);
+  } while (tResult == USBD_BUSY);
+  
+  return (tResult == USBD_OK ? size : 0);
 }
 
 int USBSerial::available(void) {
@@ -125,11 +102,16 @@ int USBSerial::peek(void)
 
 void USBSerial::flush(void)
 {
-  /* UserTxBufPtrOut can be modified by TIM ISR, so in order to be sure that the */
-  /* value that we read is correct, we need to disable TIM Interrupt.            */
-  CDC_disable_TIM_Interrupt();
-  CDC_flush();
-  CDC_enable_TIM_Interrupt();
+  // If we have never written a byte, no need to flush. This special
+  // case is needed since there is no way to force the TXC (transmit
+  // complete) bit to 1 during initialization
+  if (!_written)
+    return;
+
+  uint8_t tResult = USBD_OK;
+  do {
+    tResult = USBD_CDC_TransmitPacket(&hUSBD_Device_CDC);
+  } while (tResult == USBD_BUSY);
 }
 
 uint8_t USBSerial::pending(void) {

@@ -41,13 +41,15 @@ __IO uint8_t UserRxBuffer[APP_RX_DATA_SIZE];
 __IO uint8_t StackRxBuffer[CDC_MAX_PACKET_SIZE];
 
 /* Send Data over USB CDC are stored in this buffer       */
+/*
 __IO uint8_t UserTxBuffer[APP_TX_DATA_SIZE];
 __IO uint8_t StackTxBuffer[APP_TX_DATA_SIZE];
+*/
 
-__IO uint32_t UserTxBufPtrIn = 0; /* Increment this pointer or roll it back to
-                               start address when data are received over write call */
-__IO uint32_t UserTxBufPtrOut = 0; /* Increment this pointer or roll it back to
-                                 start address when data are sent over USB */
+/*
+__IO uint32_t UserTxBufPtrIn = 0; // Increment this pointer or roll it back to start address when data are received over write call
+__IO uint32_t UserTxBufPtrOut = 0; // Increment this pointer or roll it back to start address when data are sent over USB
+ */
 
 __IO uint32_t UserRxBufPtrIn = 0; /* Increment this pointer or roll it back to
                                start address when data are received over USB */
@@ -96,10 +98,10 @@ USBD_CDC_LineCodingTypeDef linecoding =
 static int8_t USBD_CDC_Init(void)
 {
   /* Configure and start the TIM Base generation */
-  CDC_TIM_Config();
+  //CDC_TIM_Config();
 
   /* Set Application Buffers */
-  USBD_CDC_SetTxBuffer(&hUSBD_Device_CDC, (uint8_t *)UserTxBuffer, 1);
+  //USBD_CDC_SetTxBuffer(&hUSBD_Device_CDC, (uint8_t *)UserTxBuffer, 1);
   USBD_CDC_SetRxBuffer(&hUSBD_Device_CDC, (uint8_t *)StackRxBuffer);
 
   return (USBD_OK);
@@ -247,13 +249,14 @@ static int8_t USBD_CDC_Receive (uint8_t* Buf, uint32_t *Len)
   return (USBD_OK);
 }
 
+/* 
 void CDC_flush(void)
 {
   uint8_t status;
 
   if(UserTxBufPtrOut != UserTxBufPtrIn)
   {
-    if(UserTxBufPtrOut > UserTxBufPtrIn) /* Roll-back */
+    if(UserTxBufPtrOut > UserTxBufPtrIn) //
     {
       memcpy((uint8_t *)&StackTxBuffer[0],
              (uint8_t *)&UserTxBuffer[UserTxBufPtrOut],
@@ -283,6 +286,7 @@ void CDC_flush(void)
     }
   }
 }
+ */
 
 void CDC_resume_receive(void) {
   if (receiveSuspended) {
@@ -297,6 +301,7 @@ void CDC_resume_receive(void) {
   }
 }
 
+/* 
 void CDC_disable_TIM_Interrupt(void)
 {
   HAL_NVIC_DisableIRQ(CDC_TIM_IRQn);
@@ -309,14 +314,14 @@ void CDC_enable_TIM_Interrupt(void)
 
 static void CDC_TIM_Config(void)
 {
-  /* Set TIMx instance */
+  // Set TIMx instance
   CDC_TimHandle.timer = CDC_TIM;
-  /* Initialize CDC_TIM peripheral as follow:
-       + Period = 10000 - 1
-       + Prescaler = ((SystemCoreClock/2)/10000) - 1
-       + ClockDivision = 0
-       + Counter direction = Up
-  */
+  // Initialize CDC_TIM peripheral as follow:
+  //   + Period = 10000 - 1
+  //   + Prescaler = ((SystemCoreClock/2)/10000) - 1
+  //   + ClockDivision = 0
+  //   + Counter direction = Up
+
   TimerHandleInit(&CDC_TimHandle, (uint16_t)((CDC_POLLING_INTERVAL*1000) - 1), ((uint32_t)(getTimerClkFreq(CDC_TIM) / (1000000)) - 1));
   HAL_NVIC_SetPriority(CDC_TIM_IRQn, 6, 0);
 
@@ -333,7 +338,7 @@ void CDC_TIM_PeriodElapsedCallback(stimer_t *htim)
   uint8_t status;
   uint16_t packetLength;
 
-  if (UserTxBufPtrOut > UserTxBufPtrIn) { /* Roll-back */
+  if (UserTxBufPtrOut > UserTxBufPtrIn) { // Roll-back
     memcpy((uint8_t *)&StackTxBuffer[0],
            (uint8_t *)&UserTxBuffer[UserTxBufPtrOut],
            (APP_TX_DATA_SIZE - UserTxBufPtrOut));
@@ -368,6 +373,7 @@ void CDC_TIM_PeriodElapsedCallback(stimer_t *htim)
     sendZLP = packetLength % CDC_MAX_PACKET_SIZE == 0;
   }
 }
+ */
 
 #endif /* USBD_USE_CDC */
 #endif /* USBCON */

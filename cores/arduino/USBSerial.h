@@ -26,6 +26,9 @@
 //================================================================================
 // Serial over CDC
 class USBSerial : public Stream {
+protected:
+    bool _written;
+
 public:
     USBSerial(void) {};
 
